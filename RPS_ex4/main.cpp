@@ -7,7 +7,7 @@ using std::string;
 using std::get;
 
 static bool test1(){
-	GameBoard<12, 7, string, 4> board;
+	GameBoard<12, 7, char, 4> board;
 	int i = 0;
 	for (int row = 0; row < 12; row++){
 		for(int col =0; col < 7; col++){
@@ -15,7 +15,7 @@ static bool test1(){
 			if ((row*7 + col) % 5 == 0)
 				continue;
 
-			board.setPiece(row, col, "Piece", i);
+			board.setPiece(row, col, 'J', i);
 			i = (i+1)%4;
 
 
@@ -33,6 +33,19 @@ static bool test1(){
 		printf("row <%d> col <%d>\n", get<0>(pieceInfo), get<1>(pieceInfo));
 		occurence[get<3>(pieceInfo)]++;
 	}
+
+	 char piece = 'J';
+	 for (auto pieceInfo : board.allOccureneceOfPiece(piece)) {
+	 	printf("row <%d> col <%d>\n", get<0>(pieceInfo), get<1>(pieceInfo));
+	 	occurence[get<3>(pieceInfo)]++;
+	 }
+
+	 for (auto pieceInfo : board.allOccureneceOfPieceForPlayer(piece, playerNum)) {
+		 printf("row <%d> col <%d>\n", get<0>(pieceInfo), get<1>(pieceInfo));
+		 occurence[get<3>(pieceInfo)]++;
+	 }
+
+	
 
 	for(int i = 0;i<4;i++){
 		if (occurence[i] != 21){

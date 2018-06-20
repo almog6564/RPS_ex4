@@ -17,6 +17,8 @@ using std::endl;
 
 template<typename GAME_PIECE>
 using PieceInfo = std::unique_ptr<const std::pair<int, GAME_PIECE>>;
+
+typedef enum { AllPiecesOfPlayer , AllOccureneceOfPiece, AllOccureneceOfPieceForPlayer} condition_t;
  
 template <int ROWS, 
 		  int COLS, 
@@ -177,15 +179,24 @@ public:
 		return Iterator();
 	}
 
-	class AllPiecesOfPlayer
+	class conditionalIterator
 	{
 		const GameBoard* m_gameBoard;
 		int m_playerNum;
 		int m_ROWS;
 		int m_COLS;
+		condition_t m_condition;
+		GAME_PIECE m_piece;
 	public:
-		AllPiecesOfPlayer(const GameBoard* _gameBoard, int _playerNum, int _ROWS, int _COLS)
-			: m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_ROWS(_ROWS), m_COLS(_COLS) {}
+		conditionalIterator(const GameBoard* _gameBoard, int _playerNum, int _ROWS, int _COLS, condition_t _condition)
+			: m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_ROWS(_ROWS), m_COLS(_COLS), m_condition(_condition) {}
+
+		conditionalIterator(const GameBoard* _gameBoard, GAME_PIECE _piece, int _ROWS, int _COLS, condition_t _condition)
+			: m_piece(_piece), m_gameBoard(_gameBoard), m_ROWS(_ROWS), m_COLS(_COLS), m_condition(_condition) {}
+
+		conditionalIterator(const GameBoard* _gameBoard, GAME_PIECE _piece, int _playerNum, int _ROWS, int _COLS, condition_t _condition)
+			: m_piece(_piece), m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_ROWS(_ROWS), m_COLS(_COLS), m_condition(_condition) {}
+
 		class iterator1
 		{
 			int m_index;
@@ -194,23 +205,50 @@ public:
 			const GameBoard* m_innerGameBoard;
 			int m_innerRows;
 			int m_innerCols;
+			condition_t m_innerCondition;
+			GAME_PIECE m_innerPiece;
 						
 		public:
-			iterator1(int _index, int _size, int _playerNum, const GameBoard* _gameBoard, int _ROWS, int _COLS)
-				: m_index(_index), m_innerSize(_size), m_innerPlayerNum(_playerNum), m_innerGameBoard(_gameBoard), m_innerRows(_ROWS), m_innerCols(_COLS)  {}
+			iterator1(int _index, int _size, int _playerNum, const GameBoard* _gameBoard, int _ROWS, int _COLS, condition_t _condition)
+				: m_index(_index), m_innerSize(_size), m_innerPlayerNum(_playerNum), m_innerGameBoard(_gameBoard), m_innerRows(_ROWS), m_innerCols(_COLS), m_innerCondition(_condition)  {}
 
+			iterator1(int _index, int _size, GAME_PIECE _piece, const GameBoard* _gameBoard, int _ROWS, int _COLS, condition_t _condition)
+				: m_index(_index), m_innerSize(_size), m_innerPiece(_piece), m_innerGameBoard(_gameBoard), m_innerRows(_ROWS), m_innerCols(_COLS), m_innerCondition(_condition) {}
+
+			iterator1(int _index, int _size, GAME_PIECE _piece, int _playerNum, const GameBoard* _gameBoard, int _ROWS, int _COLS, condition_t _condition)
+				: m_index(_index), m_innerSize(_size), m_innerPiece(_piece), m_innerPlayerNum(_playerNum), m_innerGameBoard(_gameBoard), m_innerRows(_ROWS), m_innerCols(_COLS), m_innerCondition(_condition) {}
+			
 			iterator1(int _maxSize) : m_index(_maxSize) {}
 
 			iterator1 operator++()
 			{
 				m_index++;
 				int i;
+				bool found = false;
 				for (i = m_index; i < m_innerSize ; i++)
 				{
-					if (m_innerGameBoard->table[i]->first == m_innerPlayerNum)
+					switch (m_innerCondition)
 					{
+					case AllPiecesOfPlayer:
+						if (m_innerGameBoard->table[i]->first == m_innerPlayerNum)
+						{
+							found = true;
+						}
+						break;
+					case AllOccureneceOfPiece:
+						if (m_innerGameBoard->table[i]->second == m_innerPiece)
+						{
+							found = true;
+						}
+						break;
+					case AllOccureneceOfPieceForPlayer:
+						if (m_innerGameBoard->table[i]->first == m_innerPlayerNum && m_innerGameBoard->table[i]->second == m_innerPiece)
+						{
+							found = true;
+						}
 						break;
 					}
+					if (found) break;
 				}
 				m_index = i;
 				return *this;
@@ -223,7 +261,7 @@ public:
 
 			const std::tuple<int, int, GAME_PIECE, int> operator*() const
 			{
-				return std::tuple<int, int, GAME_PIECE, int>(m_index / m_innerRows, m_index % m_innerRows, GAME_PIECE(m_innerGameBoard->table[m_index]->second), m_innerGameBoard->table[m_index]->first);
+				return std::tuple<int, int, GAME_PIECE, int>(m_index / m_innerRows, m_index % m_innerRows, GAME_PIECE(m_innerGameBoard->table[m_index]->second), m_innerPlayerNum);
 			}
 		};
 
@@ -233,11 +271,32 @@ public:
 
 			for (int i = 0; i < size; i++)
 			{
-				if (m_gameBoard->table[i]->first == m_playerNum)
+				switch (m_condition)
 				{
-					cout << "begin found piece" << endl;
-					return iterator1(i, size , m_playerNum, m_gameBoard, m_ROWS, m_COLS);
+				case AllPiecesOfPlayer:
+					if (m_gameBoard->table[i]->first == m_playerNum)
+					{
+						cout << "begin found piece" << endl;
+						return iterator1(i, size, m_playerNum, m_gameBoard, m_ROWS, m_COLS, m_condition);
+					}
+					break;
+				case AllOccureneceOfPiece:
+					if (m_gameBoard->table[i]->second == m_piece)
+					{
+						cout << "begin found piece" << endl;
+						return iterator1(i, size, m_piece, m_gameBoard, m_ROWS, m_COLS, m_condition);
+					}
+					break;
+				case AllOccureneceOfPieceForPlayer:
+					if (m_gameBoard->table[i]->first == m_playerNum && m_gameBoard->table[i]->second == m_piece)
+					{
+						cout << "begin found piece" << endl;
+						return iterator1(i, size, m_piece, m_playerNum, m_gameBoard, m_ROWS, m_COLS, m_condition);
+					}
+					break;
 				}
+				
+				
 			}
 			return iterator1(m_gameBoard->table.size()); //did not find  player's piece
 		}
@@ -249,11 +308,20 @@ public:
 
 	};
 
-	AllPiecesOfPlayer allPiecesOfPlayer(int playerNum)
+	conditionalIterator allPiecesOfPlayer(int playerNum)
 	{
-		return AllPiecesOfPlayer(this, playerNum, ROWS, COLS);
+		return conditionalIterator(this, playerNum, ROWS, COLS, AllPiecesOfPlayer);
 	}
 	
+	conditionalIterator allOccureneceOfPiece(GAME_PIECE piece)
+	{
+		return conditionalIterator(this, piece, ROWS, COLS, AllOccureneceOfPiece);
+	}
+
+	conditionalIterator allOccureneceOfPieceForPlayer(GAME_PIECE piece, int playerNum)
+	{
+		return conditionalIterator(this, piece, playerNum, ROWS, COLS, AllOccureneceOfPieceForPlayer);
+	}
 };
 
 
