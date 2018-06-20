@@ -204,15 +204,15 @@ public:
 			iterator1 operator++()
 			{
 				m_index++;
-				for (int i = m_index; i < m_innerSize ; i++)
+				int i;
+				for (i = m_index; i < m_innerSize ; i++)
 				{
 					if (m_innerGameBoard->table[i]->first == m_innerPlayerNum)
 					{
-						m_index = i;
-						return *this;					
+						break;
 					}
 				}
-				m_index = m_innerSize;
+				m_index = i;
 				return *this;
 			}
 
