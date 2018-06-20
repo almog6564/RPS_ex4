@@ -325,6 +325,10 @@ public:
 };
 
 
+//TODO: remove inner data members, use references to Enclosing class
+//TODO: Take COLS insted of ROWS (no data member needed)
+//TODO: Verify index / COLS, index % COLS OR change to Almog's rows/cols implementation
+//TODO: Unit test for all iterations
 
 
 
