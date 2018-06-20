@@ -28,6 +28,12 @@ static bool test1(){
 		occurence[get<3>(pieceInfo)]++;
 		
 	}
+	int playerNum = 0;
+	for (auto pieceInfo : board.allPiecesOfPlayer(playerNum)) {
+		printf("row <%d> col <%d>\n", get<0>(pieceInfo), get<1>(pieceInfo));
+		occurence[get<3>(pieceInfo)]++;
+	}
+
 	for(int i = 0;i<4;i++){
 		if (occurence[i] != 21){
 			printf("occurence[%d] = %d\n", i, occurence[i]);

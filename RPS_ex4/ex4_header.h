@@ -6,6 +6,14 @@
 #include <array>
 #include <tuple>
 #include <cstdio>
+#include <iostream>
+
+using std::get;
+using std::cout;
+using std::endl;
+
+
+
 
 template<typename GAME_PIECE>
 using PieceInfo = std::unique_ptr<const std::pair<int, GAME_PIECE>>;
@@ -167,6 +175,83 @@ public:
 	Iterator end()
 	{
 		return Iterator();
+	}
+
+	class AllPiecesOfPlayer
+	{
+		const GameBoard* m_gameBoard;
+		int m_playerNum;
+		int m_ROWS;
+		int m_COLS;
+	public:
+		AllPiecesOfPlayer(const GameBoard* _gameBoard, int _playerNum, int _ROWS, int _COLS)
+			: m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_ROWS(_ROWS), m_COLS(_COLS) {}
+		class iterator1
+		{
+			int m_index;
+			int m_innerSize;
+			int m_innerPlayerNum;
+			const GameBoard* m_innerGameBoard;
+			int m_innerRows;
+			int m_innerCols;
+						
+		public:
+			iterator1(int _index, int _size, int _playerNum, const GameBoard* _gameBoard, int _ROWS, int _COLS)
+				: m_index(_index), m_innerSize(_size), m_innerPlayerNum(_playerNum), m_innerGameBoard(_gameBoard), m_innerRows(_ROWS), m_innerCols(_COLS)  {}
+
+			iterator1(int _maxSize) : m_index(_maxSize) {}
+
+			iterator1 operator++()
+			{
+				m_index++;
+				for (int i = m_index; i < m_innerSize ; i++)
+				{
+					if (m_innerGameBoard->table[i]->first == m_innerPlayerNum)
+					{
+						m_index = i;
+						return *this;					
+					}
+				}
+				m_index = m_innerSize;
+				return *this;
+			}
+
+			bool operator!=(const iterator1& other)
+			{
+				return (m_index != other.m_index);
+			}
+
+			const std::tuple<int, int, GAME_PIECE, int> operator*() const
+			{
+				return std::tuple<int, int, GAME_PIECE, int>(m_index / m_innerRows, m_index % m_innerRows, GAME_PIECE(m_innerGameBoard->table[m_index]->second), m_innerGameBoard->table[m_index]->first);
+			}
+		};
+
+		iterator1 begin()
+		{
+			int size = m_gameBoard->table.size();
+
+			for (int i = 0; i < size; i++)
+			{
+				if (m_gameBoard->table[i]->first == m_playerNum)
+				{
+					cout << "begin found piece" << endl;
+					return iterator1(i, size , m_playerNum, m_gameBoard, m_ROWS, m_COLS);
+				}
+			}
+			return iterator1(m_gameBoard->table.size()); //did not find  player's piece
+		}
+
+		iterator1 end()
+		{
+			return iterator1(m_gameBoard->table.size());
+		}
+
+	};
+
+	AllPiecesOfPlayer allPiecesOfPlayer(int playerNum)
+	{
+		return AllPiecesOfPlayer(this, playerNum, ROWS, COLS);
 	}
 	
 };
