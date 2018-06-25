@@ -168,7 +168,10 @@ public:
 	{
 		return Iterator();
 	}
-
+	
+	/*
+		conditionalIterator will take of the 3 special conditional iterations 
+	*/
 	struct conditionalIterator
 	{
 		const GameBoard& m_gameBoard;
@@ -176,6 +179,7 @@ public:
 		condition_t m_condition;
 		GAME_PIECE m_piece;
 
+		//constructor overloading for each condition
 		conditionalIterator(const GameBoard& _gameBoard, int _playerNum, condition_t _condition)
 			: m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_condition(_condition) {}
 
@@ -185,15 +189,17 @@ public:
 		conditionalIterator(const GameBoard& _gameBoard, GAME_PIECE _piece, int _playerNum, condition_t _condition)
 			: m_piece(_piece), m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_condition(_condition) {}
 
+		//iterator2 is the iterator for 3 special iterations
 		class iterator2
 		{
-			class conditionalIterator& m_condIter;
-			int m_index;
+			conditionalIterator& m_condIter;
+			int m_index; //index is in range 0-(ROWS*COLS)
 
 		public:
 			iterator2(int _index, conditionalIterator& _condIter)
 				: m_index(_index), m_condIter(_condIter) {}
 			
+			//get next iterator acoording to the condition
 			iterator2 operator++()
 			{
 				m_index++;
@@ -231,7 +237,7 @@ public:
 
 			bool operator!=(const iterator2& other)
 			{
-				return (m_index != other.m_index);
+				return (m_index != other.m_index); 
 			}
 
 			const std::tuple<int, int, GAME_PIECE, int> operator*() const
@@ -272,7 +278,7 @@ public:
 					break;
 				}
 			}
-			return iterator2(ROWS*COLS, *this); //did not find  player's piece
+			return iterator2(ROWS*COLS, *this); //did not find  player's piece, return maximal index (+1)
 		}
 
 		iterator2 end()
@@ -280,6 +286,8 @@ public:
 			return iterator2(ROWS*COLS, *this);
 		}
 	};
+
+	//create specific conditionalIterator according to the function that was called
 
 	conditionalIterator allPiecesOfPlayer(int playerNum)
 	{
