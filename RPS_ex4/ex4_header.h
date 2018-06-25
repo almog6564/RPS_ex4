@@ -12,9 +12,6 @@ using std::get;
 using std::cout;
 using std::endl;
 
-
-
-
 template<typename GAME_PIECE>
 using PieceInfo = std::unique_ptr<const std::pair<int, GAME_PIECE>>;
 
@@ -76,7 +73,6 @@ class GameBoard
 
 		bool operator!=(const Iterator & other)
 		{
-			//printf("!=\t (%p,%p) (%d,%d) (%d,%d)\n", cellPtr, other.cellPtr, row, other.row, col, other.col);
 			return ((cellPtr != other.cellPtr) && (row != other.row) && (col != other.col));
 		}
 
@@ -121,14 +117,8 @@ class GameBoard
 
 public:
 
-#define IteratorType const std::tuple<int, int, GAME_PIECE, int>
-
-	
-
 	GameBoard() 
 	{
-		//table(ROWS, std::vector<int /*PieceInfo<GAME_PIECE*/>>(COLS, -1/*std::make_unique<PieceInfo<GAME_PIECE>>(-1, GAME_PIECE())*/));
-		
 		for (auto& cell : table)
 			cell = std::move(std::make_unique<const std::pair<int, GAME_PIECE>>(-1, GAME_PIECE()));
 		
@@ -179,70 +169,55 @@ public:
 		return Iterator();
 	}
 
-	class conditionalIterator
+	struct conditionalIterator
 	{
-		const GameBoard* m_gameBoard;
+		const GameBoard& m_gameBoard;
 		int m_playerNum;
-		int m_ROWS;
-		int m_COLS;
 		condition_t m_condition;
 		GAME_PIECE m_piece;
-	public:
-		conditionalIterator(const GameBoard* _gameBoard, int _playerNum, int _ROWS, int _COLS, condition_t _condition)
-			: m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_ROWS(_ROWS), m_COLS(_COLS), m_condition(_condition) {}
 
-		conditionalIterator(const GameBoard* _gameBoard, GAME_PIECE _piece, int _ROWS, int _COLS, condition_t _condition)
-			: m_piece(_piece), m_gameBoard(_gameBoard), m_ROWS(_ROWS), m_COLS(_COLS), m_condition(_condition) {}
+		conditionalIterator(const GameBoard& _gameBoard, int _playerNum, condition_t _condition)
+			: m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_condition(_condition) {}
 
-		conditionalIterator(const GameBoard* _gameBoard, GAME_PIECE _piece, int _playerNum, int _ROWS, int _COLS, condition_t _condition)
-			: m_piece(_piece), m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_ROWS(_ROWS), m_COLS(_COLS), m_condition(_condition) {}
+		conditionalIterator(const GameBoard& _gameBoard, GAME_PIECE _piece, condition_t _condition)
+			: m_piece(_piece), m_gameBoard(_gameBoard), m_condition(_condition) {}
 
-		class iterator1
+		conditionalIterator(const GameBoard& _gameBoard, GAME_PIECE _piece, int _playerNum, condition_t _condition)
+			: m_piece(_piece), m_playerNum(_playerNum), m_gameBoard(_gameBoard), m_condition(_condition) {}
+
+		class iterator2
 		{
+			class conditionalIterator& m_condIter;
 			int m_index;
-			int m_innerSize;
-			int m_innerPlayerNum;
-			const GameBoard* m_innerGameBoard;
-			int m_innerRows;
-			int m_innerCols;
-			condition_t m_innerCondition;
-			GAME_PIECE m_innerPiece;
-						
+
 		public:
-			iterator1(int _index, int _size, int _playerNum, const GameBoard* _gameBoard, int _ROWS, int _COLS, condition_t _condition)
-				: m_index(_index), m_innerSize(_size), m_innerPlayerNum(_playerNum), m_innerGameBoard(_gameBoard), m_innerRows(_ROWS), m_innerCols(_COLS), m_innerCondition(_condition)  {}
-
-			iterator1(int _index, int _size, GAME_PIECE _piece, const GameBoard* _gameBoard, int _ROWS, int _COLS, condition_t _condition)
-				: m_index(_index), m_innerSize(_size), m_innerPiece(_piece), m_innerGameBoard(_gameBoard), m_innerRows(_ROWS), m_innerCols(_COLS), m_innerCondition(_condition) {}
-
-			iterator1(int _index, int _size, GAME_PIECE _piece, int _playerNum, const GameBoard* _gameBoard, int _ROWS, int _COLS, condition_t _condition)
-				: m_index(_index), m_innerSize(_size), m_innerPiece(_piece), m_innerPlayerNum(_playerNum), m_innerGameBoard(_gameBoard), m_innerRows(_ROWS), m_innerCols(_COLS), m_innerCondition(_condition) {}
+			iterator2(int _index, conditionalIterator& _condIter)
+				: m_index(_index), m_condIter(_condIter) {}
 			
-			iterator1(int _maxSize) : m_index(_maxSize) {}
-
-			iterator1 operator++()
+			iterator2 operator++()
 			{
 				m_index++;
 				int i;
 				bool found = false;
-				for (i = m_index; i < m_innerSize ; i++)
+				for (i = m_index; i < ROWS*COLS ; i++)
 				{
-					switch (m_innerCondition)
+					switch (m_condIter.m_condition)
 					{
 					case AllPiecesOfPlayer:
-						if (m_innerGameBoard->table[i]->first == m_innerPlayerNum)
+						if (m_condIter.m_gameBoard.table[i]->first == m_condIter.m_playerNum)
 						{
 							found = true;
 						}
 						break;
 					case AllOccureneceOfPiece:
-						if (m_innerGameBoard->table[i]->second == m_innerPiece)
+						if (m_condIter.m_gameBoard.table[i]->second == m_condIter.m_piece)
 						{
 							found = true;
 						}
 						break;
 					case AllOccureneceOfPieceForPlayer:
-						if (m_innerGameBoard->table[i]->first == m_innerPlayerNum && m_innerGameBoard->table[i]->second == m_innerPiece)
+						if (m_condIter.m_gameBoard.table[i]->first == m_condIter.m_playerNum && 
+							m_condIter.m_gameBoard.table[i]->second == m_condIter.m_piece)
 						{
 							found = true;
 						}
@@ -254,86 +229,72 @@ public:
 				return *this;
 			}
 
-			bool operator!=(const iterator1& other)
+			bool operator!=(const iterator2& other)
 			{
 				return (m_index != other.m_index);
 			}
 
 			const std::tuple<int, int, GAME_PIECE, int> operator*() const
 			{
-				return std::tuple<int, int, GAME_PIECE, int>(m_index / m_innerRows, m_index % m_innerRows, GAME_PIECE(m_innerGameBoard->table[m_index]->second), m_innerPlayerNum);
+				return std::tuple<int, int, GAME_PIECE, int>(m_index / COLS, m_index % COLS, GAME_PIECE(m_condIter.m_gameBoard.table[m_index]->second), m_condIter.m_gameBoard.table[m_index]->first);
 			}
 		};
 
-		iterator1 begin()
+		iterator2 begin()
 		{
-			int size = m_gameBoard->table.size();
+			int size = ROWS*COLS;
+			bool found = false;
 
 			for (int i = 0; i < size; i++)
 			{
 				switch (m_condition)
 				{
+
 				case AllPiecesOfPlayer:
-					if (m_gameBoard->table[i]->first == m_playerNum)
+					if (m_gameBoard.table[i]->first == m_playerNum)
 					{
-						cout << "begin found piece" << endl;
-						return iterator1(i, size, m_playerNum, m_gameBoard, m_ROWS, m_COLS, m_condition);
+						return iterator2(i, *this);
 					}
 					break;
+
 				case AllOccureneceOfPiece:
-					if (m_gameBoard->table[i]->second == m_piece)
+					if (m_gameBoard.table[i]->second == m_piece)
 					{
-						cout << "begin found piece" << endl;
-						return iterator1(i, size, m_piece, m_gameBoard, m_ROWS, m_COLS, m_condition);
+						return iterator2(i, *this);
 					}
 					break;
+
 				case AllOccureneceOfPieceForPlayer:
-					if (m_gameBoard->table[i]->first == m_playerNum && m_gameBoard->table[i]->second == m_piece)
+					if (m_gameBoard.table[i]->first == m_playerNum && m_gameBoard.table[i]->second == m_piece)
 					{
-						cout << "begin found piece" << endl;
-						return iterator1(i, size, m_piece, m_playerNum, m_gameBoard, m_ROWS, m_COLS, m_condition);
+						return iterator2(i, *this);
 					}
 					break;
 				}
-				
-				
 			}
-			return iterator1(m_gameBoard->table.size()); //did not find  player's piece
+			return iterator2(ROWS*COLS, *this); //did not find  player's piece
 		}
 
-		iterator1 end()
+		iterator2 end()
 		{
-			return iterator1(m_gameBoard->table.size());
+			return iterator2(ROWS*COLS, *this);
 		}
-
 	};
 
 	conditionalIterator allPiecesOfPlayer(int playerNum)
 	{
-		return conditionalIterator(this, playerNum, ROWS, COLS, AllPiecesOfPlayer);
+		return conditionalIterator(*this, playerNum, AllPiecesOfPlayer);
 	}
 	
 	conditionalIterator allOccureneceOfPiece(GAME_PIECE piece)
 	{
-		return conditionalIterator(this, piece, ROWS, COLS, AllOccureneceOfPiece);
+		return conditionalIterator(*this, piece, AllOccureneceOfPiece);
 	}
 
 	conditionalIterator allOccureneceOfPieceForPlayer(GAME_PIECE piece, int playerNum)
 	{
-		return conditionalIterator(this, piece, playerNum, ROWS, COLS, AllOccureneceOfPieceForPlayer);
+		return conditionalIterator(*this, piece, playerNum, AllOccureneceOfPieceForPlayer);
 	}
 };
 
-
-//TODO: remove inner data members, use references to Enclosing class
-//TODO: Take COLS insted of ROWS (no data member needed)
-//TODO: Verify index / COLS, index % COLS OR change to Almog's rows/cols implementation
-//TODO: Unit test for all iterations
-
-
-
-
-
-
 #endif // ifndef __EX4_HEADER__
-
